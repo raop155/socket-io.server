@@ -6,32 +6,49 @@ const PORT = 4000;
 let clients = [];
 
 io.on('connection', (socket) => {
-  socket.on('client-id', ({ clientId }) => {
+  socket.on('clients', () => {
+    io.emit('clients', clients);
+  });
+
+  socket.on('client-id', ({ branchId, deviceId }) => {
     const client = {
-      clientId,
+      branchId,
+      deviceId,
       socketId: socket.id,
     };
     console.log('A Client Connected!', client);
     clients = [...clients, client];
+
+    io.emit('clients', clients);
+  });
+
+  socket.on('meeting-status', ({ status }) => {
+    const client = clients.find((x) => x.socketId === socketId);
+    if (client) {
+      client.meetingStatus = status;
+      io.emit('clients', clients);
+    }
+  });
+
+  socket.on('livemode', ({ status }) => {
+    const client = clients.find((x) => x.socketId === socketId);
+    if (client) {
+      client.liveMode = status;
+      io.emit('clients', clients);
+    }
   });
 
   socket.on('disconnect', () => {
     clients = clients.filter((c) => {
       if (c.socketId === socket.id) {
-        const client = {
-          clientId: c.clientId,
-          socketId: c.socketId,
-        };
-        console.log('A Client Disconnected!', client);
+        console.log('A Client Disconnected!');
         return false;
       } else {
         return true;
       }
     });
-  });
 
-  socket.on('message', ({ name, message }) => {
-    io.emit('message', { name, message });
+    io.emit('clients', clients);
   });
 });
 
